@@ -51,6 +51,17 @@ stages:
                 **/__pycache__
                 **/*.pyc
 
+          - task: PowerShell@2
+            displayName: 'Normalize shell scripts to LF'
+            inputs:
+              targetType: inline
+              script: |
+                Get-ChildItem -Path "$(Build.ArtifactStagingDirectory)/site" -Filter *.sh -Recurse | ForEach-Object {
+                  $c = [IO.File]::ReadAllText($_.FullName) -replace "`r`n","`n" -replace "`r","`n"
+                  [IO.File]::WriteAllText($_.FullName, $c)
+                  Write-Host "Normalized $($_.FullName)"
+                }
+
           - script: |
               python -m pip install --upgrade pip
               pip install -r requirements.txt --target="$(Build.ArtifactStagingDirectory)/site/.python_packages/lib/site-packages"
