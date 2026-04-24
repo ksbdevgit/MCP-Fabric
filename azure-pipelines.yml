@@ -4,11 +4,11 @@ trigger:
       - main
 
 variables:
-  azureServiceConnection: 'FabricMCP-Azure'
+  azureServiceConnection: 'MCP-Fabric-Azure'
   resourceGroup: 'rg-FabricMCP-prod-001'
   appName: 'app-FabricMCP-front-prod-001'
   pythonVersion: '3.11'
-  agentPoolName: 'FabricMCP-Pool'
+  agentPoolName: 'MCP-Fabric-Pool'
 
 stages:
   - stage: Build
@@ -61,7 +61,7 @@ stages:
     jobs:
       - deployment: DeployWeb
         displayName: 'Deploy to $(appName)'
-        environment: 'FabricMCP-prod'
+        environment: 'MCP-Fabric-prod'
         pool:
           name: $(agentPoolName)
         strategy:
