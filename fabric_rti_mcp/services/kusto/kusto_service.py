@@ -347,6 +347,12 @@ def kusto_query(
     Executes a KQL query on the specified database. If no database is provided,
     it will use the default database.
 
+    IMPORTANT — Microsoft Fabric Eventhouses: data from Lakehouse shortcuts is NOT
+    accessible via direct table references. Use `external_table('name')` syntax
+    instead. Example: `external_table('facturacion') | take 10`. Regular table
+    references (e.g. `facturacion | take 10`) will return empty results for
+    shortcut-backed data.
+
     :param query: The KQL query to execute.
     :param cluster_uri: The URI of the Kusto cluster.
     :param database: Optional database name. If not provided, uses the default database.
@@ -539,10 +545,16 @@ def kusto_list_entities(
     Retrieves a list of all entities (databases, tables, external tables, materialized views,
     functions, graphs) in the Kusto cluster.
 
-    :param entity_type: Type of entities to list: "databases", "tables", "external-tables",
-    "materialized-views", "functions", "graphs".
+    IMPORTANT — Microsoft Fabric Eventhouses: data from Lakehouse shortcuts is exposed
+    as `external-table`, NOT `table`. Native tables in Fabric Eventhouses are typically
+    empty. When exploring data in a Fabric Eventhouse, try `entity_type="external-table"`
+    first; fall back to `"table"` only if you already know the data is native.
+
+    :param entity_type: Type of entities to list: "database", "table", "external-table",
+    "materialized-view", "function", "graph". In Fabric Eventhouses, prefer
+    "external-table" for data exploration (Lakehouse shortcuts surface as external tables).
     :param database: The name of the database to list entities from.
-    Required for all types except "databases" (which are top-level).
+    Required for all types except "database" (which are top-level).
     :param cluster_uri: The URI of the Kusto cluster.
     :param client_request_properties: Optional dictionary of additional client request properties.
 
@@ -630,7 +642,8 @@ def kusto_describe_database_entity(
     If no database is provided, uses the default database.
 
     :param entity_name: Name of the entity to get schema for.
-    :param entity_type: Type of the entity (table, external-table, materialized-view, function, graph).
+    :param entity_type: Type of the entity: "table", "external-table", "materialized-view",
+    "function", "graph". In Fabric Eventhouses, Lakehouse shortcuts are "external-table".
     :param cluster_uri: The URI of the Kusto cluster.
     :param database: Optional database name. If not provided, uses the default database.
     :param client_request_properties: Optional dictionary of additional client request properties.
@@ -691,7 +704,8 @@ def kusto_sample_entity(
     If no database is provided, uses the default database.
 
     :param entity_name: Name of the entity to sample data from.
-    :param entity_type: Type of the entity (table, external-table, materialized-view, function, graph).
+    :param entity_type: Type of the entity: "table", "external-table", "materialized-view",
+    "function", "graph". In Fabric Eventhouses, Lakehouse shortcuts are "external-table".
     :param cluster_uri: The URI of the Kusto cluster.
     :param sample_size: Number of records to sample. Defaults to 10.
     :param database: Optional database name. If not provided, uses the default database.
