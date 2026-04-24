@@ -417,3 +417,9 @@ dist/*
 dist/
 
 */**/_version.py
+
+# Local deploy artifacts
+deploy.zip
+deploy_new.zip
+deploy_check/
+.claude/

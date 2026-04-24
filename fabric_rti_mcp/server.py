@@ -116,8 +116,15 @@ def main() -> None:
         # 2. Add HTTP-specific features if in HTTP mode
         if config.transport == "http":
             add_health_endpoint(fastmcp_server)
-            logger.info("Adding authorization middleware")
-            add_auth_middleware(fastmcp_server)
+            disable_auth = os.getenv("FABRIC_RTI_DISABLE_AUTH", "").lower() in ("true", "1")
+            if disable_auth:
+                logger.warning(
+                    "FABRIC_RTI_DISABLE_AUTH=true: authorization middleware DISABLED. "
+                    "Kusto will use DefaultAzureCredential (Managed Identity in Azure)."
+                )
+            else:
+                logger.info("Adding authorization middleware")
+                add_auth_middleware(fastmcp_server)
 
         # TBD - Add telemetry
 
