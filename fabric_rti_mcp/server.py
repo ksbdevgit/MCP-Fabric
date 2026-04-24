@@ -22,6 +22,26 @@ from fabric_rti_mcp.services.map import map_tools
 # Global variable to store server start time
 server_start_time = datetime.now(timezone.utc)
 
+_DEFAULT_INSTRUCTIONS = (
+    "This MCP server connects to Microsoft Fabric Real-Time Intelligence (Kusto/Eventhouse). "
+    "Key tips for callers:\n"
+    "- List configured clusters via `kusto_known_services` before querying.\n"
+    "- In Fabric Eventhouses, user data from Lakehouse shortcuts is exposed as "
+    "`external-table`, not `table`. When exploring data, call `kusto_list_entities` "
+    "with `entity_type=\"external-table\"` first; native `table` listings are "
+    "usually empty in Fabric.\n"
+    "- When querying Lakehouse shortcut data in KQL, use "
+    "`external_table('name')` syntax (e.g. `external_table('facturacion') | take 10`). "
+    "Direct table references return empty results for shortcut-backed data.\n"
+    "- KQL does not accept non-ASCII characters in column aliases "
+    "(e.g. use `Anio` instead of `Año`)."
+)
+
+
+def _resolve_instructions() -> str:
+    override = os.getenv("FABRIC_RTI_INSTRUCTIONS")
+    return override if override else _DEFAULT_INSTRUCTIONS
+
 
 def setup_shutdown_handler(sig: int, frame: types.FrameType | None) -> None:
     """Handle process termination signals."""
@@ -99,16 +119,19 @@ def main() -> None:
         name = "fabric-rti-mcp-server"
         fastmcp_class = SchemaCompatibleMCP if config.use_ai_foundry_compat else FastMCP
 
+        instructions = _resolve_instructions()
+
         if config.transport == "http":
             fastmcp_server = fastmcp_class(
                 name,
+                instructions=instructions,
                 host=config.http_host,
                 port=config.http_port,
                 streamable_http_path=config.http_path,
                 stateless_http=config.stateless_http,
             )
         else:
-            fastmcp_server = fastmcp_class(name)
+            fastmcp_server = fastmcp_class(name, instructions=instructions)
 
         # 1. Register tools
         register_tools(fastmcp_server)
