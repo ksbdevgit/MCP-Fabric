@@ -8,7 +8,7 @@ variables:
   resourceGroup: 'rg-FabricMCP-prod-001'
   appName: 'app-FabricMCP-front-prod-001'
   pythonVersion: '3.11'
-  agentPoolName: 'MCP-Fabric-Pool'
+  agentPoolName: 'DevOps_Agent'
 
 stages:
   - stage: Build
