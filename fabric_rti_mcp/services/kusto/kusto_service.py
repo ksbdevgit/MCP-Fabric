@@ -561,7 +561,7 @@ def kusto_command(
 
 def kusto_list_entities(
     cluster_uri: str,
-    entity_type: str,
+    entity_type: str = "external-table",
     database: str | None = None,
     client_request_properties: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -574,9 +574,10 @@ def kusto_list_entities(
     empty. When exploring data in a Fabric Eventhouse, try `entity_type="external-table"`
     first; fall back to `"table"` only if you already know the data is native.
 
-    :param entity_type: Type of entities to list: "database", "table", "external-table",
-    "materialized-view", "function", "graph". In Fabric Eventhouses, prefer
-    "external-table" for data exploration (Lakehouse shortcuts surface as external tables).
+    :param entity_type: Type of entities to list. Defaults to "external-table" because
+    in Fabric Eventhouses Lakehouse shortcuts surface as external tables. Other values:
+    "database", "table", "materialized-view", "function", "graph". Use "table" only
+    for native Kusto tables (e.g. pure ADX deployments).
     :param database: The name of the database to list entities from.
     Required for all types except "database" (which are top-level).
     :param cluster_uri: The URI of the Kusto cluster.
@@ -717,8 +718,8 @@ def kusto_describe_database_entity(
 
 def kusto_sample_entity(
     entity_name: str,
-    entity_type: str,
     cluster_uri: str,
+    entity_type: str = "external-table",
     sample_size: int = 10,
     database: str | None = None,
     client_request_properties: dict[str, Any] | None = None,
@@ -728,9 +729,9 @@ def kusto_sample_entity(
     If no database is provided, uses the default database.
 
     :param entity_name: Name of the entity to sample data from.
-    :param entity_type: Type of the entity: "table", "external-table", "materialized-view",
-    "function", "graph". In Fabric Eventhouses, Lakehouse shortcuts are "external-table".
     :param cluster_uri: The URI of the Kusto cluster.
+    :param entity_type: Type of the entity. Defaults to "external-table" for Fabric
+    Lakehouse shortcuts. Other values: "table", "materialized-view", "function", "graph".
     :param sample_size: Number of records to sample. Defaults to 10.
     :param database: Optional database name. If not provided, uses the default database.
     :param client_request_properties: Optional dictionary of additional client request properties.
