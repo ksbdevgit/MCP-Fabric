@@ -326,15 +326,39 @@ def _execute(
 
 
 # NOTE: This is temporary. The intent is to not use environment variables for persistency.
-def kusto_known_services() -> list[dict[str, str]]:
+def kusto_known_services() -> list[dict[str, Any]]:
     """
     Retrieves a list of all Kusto services known to the MCP.
     Could be null if no services are configured.
 
-    :return: List of objects, {"service": str, "description": str, "default_database": str}
+    For Fabric Eventhouse clusters (`*.kusto.fabric.microsoft.com`), a default
+    `data_access_hint` is populated when the configured service does not set one,
+    reminding callers that Lakehouse shortcuts are accessed via
+    `entity_type="external-table"` in `kusto_list_entities` and via
+    `external_table('name')` in KQL.
+
+    :return: List of objects: {service_uri, default_database, description, data_access_hint}
     """
     services = KustoConfig.get_known_services().values()
-    return [asdict(service) for service in services]
+    result = []
+    for service in services:
+        entry = asdict(service)
+        if entry.get("data_access_hint") is None and _is_fabric_uri(service.service_uri):
+            entry["data_access_hint"] = (
+                "Fabric Eventhouse: Lakehouse shortcuts are exposed as external-table. "
+                "Use `kusto_list_entities` with entity_type='external-table' and query via "
+                "`external_table('name')` in KQL. Regular table references return empty."
+            )
+        result.append(entry)
+    return result
+
+
+def _is_fabric_uri(uri: str) -> bool:
+    try:
+        host = urlparse(uri).hostname
+    except Exception:
+        return False
+    return bool(host and ".fabric." in host.lower())
 
 
 def kusto_query(

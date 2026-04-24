@@ -14,6 +14,10 @@ class KustoServiceConfig:
     service_uri: str
     default_database: str | None = None
     description: str | None = None
+    # Optional hint about how to access data in this cluster. Surfaced in
+    # `kusto_known_services` tool responses so MCP clients can discover,
+    # for example, that data lives in Lakehouse shortcuts.
+    data_access_hint: str | None = None
 
 
 class KustoEnvVarNames:
