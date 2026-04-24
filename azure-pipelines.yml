@@ -1,0 +1,83 @@
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  azureServiceConnection: 'FabricMCP-Azure'
+  resourceGroup: 'rg-FabricMCP-prod-001'
+  appName: 'app-FabricMCP-front-prod-001'
+  pythonVersion: '3.11'
+  agentPoolName: 'FabricMCP-Pool'
+
+stages:
+  - stage: Build
+    displayName: 'Build deploy package'
+    jobs:
+      - job: Build
+        displayName: 'Package source'
+        pool:
+          name: $(agentPoolName)
+        steps:
+          - checkout: self
+            displayName: 'Checkout source'
+
+          - task: UsePythonVersion@0
+            displayName: 'Use Python $(pythonVersion)'
+            inputs:
+              versionSpec: '$(pythonVersion)'
+              addToPath: true
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt --target="$(Build.ArtifactStagingDirectory)/site/.python_packages/lib/site-packages"
+            displayName: 'Install dependencies (Oryx-compatible layout)'
+
+          - script: |
+              cp -r fabric_rti_mcp scripts app.py startup.sh requirements.txt pyproject.toml .python-version "$(Build.ArtifactStagingDirectory)/site/" 2>/dev/null || true
+              cp .gitignore "$(Build.ArtifactStagingDirectory)/site/" 2>/dev/null || true
+              cd "$(Build.ArtifactStagingDirectory)/site"
+              find . -name '__pycache__' -type d -prune -exec rm -rf {} +
+              find . -name '*.pyc' -delete
+            displayName: 'Stage app files'
+
+          - task: ArchiveFiles@2
+            displayName: 'Zip deploy package'
+            inputs:
+              rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/site'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/deploy.zip'
+              replaceExistingArchive: true
+
+          - publish: '$(Build.ArtifactStagingDirectory)/deploy.zip'
+            artifact: drop
+            displayName: 'Publish artifact'
+
+  - stage: Deploy
+    displayName: 'Deploy to Azure App Service'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployWeb
+        displayName: 'Deploy to $(appName)'
+        environment: 'FabricMCP-prod'
+        pool:
+          name: $(agentPoolName)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: drop
+
+                - task: AzureWebApp@1
+                  displayName: 'Deploy zip to App Service'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    appType: 'webAppLinux'
+                    appName: $(appName)
+                    resourceGroupName: $(resourceGroup)
+                    package: '$(Pipeline.Workspace)/drop/deploy.zip'
+                    startUpCommand: 'bash startup.sh'
+                    deploymentMethod: 'zipDeploy'
