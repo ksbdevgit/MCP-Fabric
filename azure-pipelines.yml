@@ -28,18 +28,33 @@ stages:
               versionSpec: '$(pythonVersion)'
               addToPath: true
 
+          - task: CopyFiles@2
+            displayName: 'Stage app files'
+            inputs:
+              SourceFolder: '$(Build.SourcesDirectory)'
+              Contents: |
+                fabric_rti_mcp/**
+                scripts/**
+                app.py
+                startup.sh
+                requirements.txt
+                pyproject.toml
+                .python-version
+                .gitignore
+              TargetFolder: '$(Build.ArtifactStagingDirectory)/site'
+
+          - task: DeleteFiles@1
+            displayName: 'Clean __pycache__ and *.pyc'
+            inputs:
+              SourceFolder: '$(Build.ArtifactStagingDirectory)/site'
+              Contents: |
+                **/__pycache__
+                **/*.pyc
+
           - script: |
               python -m pip install --upgrade pip
               pip install -r requirements.txt --target="$(Build.ArtifactStagingDirectory)/site/.python_packages/lib/site-packages"
             displayName: 'Install dependencies (Oryx-compatible layout)'
-
-          - script: |
-              cp -r fabric_rti_mcp scripts app.py startup.sh requirements.txt pyproject.toml .python-version "$(Build.ArtifactStagingDirectory)/site/" 2>/dev/null || true
-              cp .gitignore "$(Build.ArtifactStagingDirectory)/site/" 2>/dev/null || true
-              cd "$(Build.ArtifactStagingDirectory)/site"
-              find . -name '__pycache__' -type d -prune -exec rm -rf {} +
-              find . -name '*.pyc' -delete
-            displayName: 'Stage app files'
 
           - task: ArchiveFiles@2
             displayName: 'Zip deploy package'
